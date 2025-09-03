@@ -1,16 +1,34 @@
+#include "address.hh"
 #include "socket.hh"
 
 #include <cstdlib>
+#include <format>
 #include <iostream>
 #include <span>
 #include <string>
 
 using namespace std;
 
+// ./apps/webget cs144.keithw.org /hello
 void get_URL( const string& host, const string& path )
 {
-  cerr << "Function called: get_URL(" << host << ", " << path << ")\n";
-  cerr << "Warning: get_URL() has not been implemented yet.\n";
+  const Address addr { host, "http" };
+  TCPSocket sk {};
+  sk.connect( addr );
+  string contents = "GET " + path + " HTTP/1.1\r\nHost: " + host + "\r\nConnection: close\r\n\r\n";
+  sk.write( contents );
+  string read_buf;
+  string response {};
+  while ( sk.eof() == false ) {
+    sk.read( read_buf );
+    response += read_buf;
+  }
+  size_t idx = response.find( "\n\n" );
+  if ( idx == std::string::npos ) {
+    cout << "";
+    return;
+  }
+  cout << response.substr( idx + 2 );
 }
 
 int main( int argc, char* argv[] )
