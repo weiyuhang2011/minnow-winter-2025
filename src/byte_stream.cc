@@ -8,15 +8,14 @@ ByteStream::ByteStream( uint64_t capacity ) : capacity_( capacity ) {}
 
 void Writer::push( string data )
 {
-  if ( available_capacity() == 0 )
+  uint64_t bytes_to_push = min( data.size(), available_capacity() );
+  if ( bytes_to_push == 0 )
     return;
-  if ( data.size() > available_capacity() ) {
-    data = data.substr( 0, available_capacity() );
+
+  for ( uint64_t i = 0; i < bytes_to_push; i++ ) {
+    buffer_.push_back( data[i] );
   }
-  for ( auto& ch : data ) {
-    buffer_.push_back( ch );
-  }
-  total_pushed_ += data.size();
+  total_pushed_ += bytes_to_push;
 }
 
 void Writer::close()

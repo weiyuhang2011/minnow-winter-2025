@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <map>
+
 #include "byte_stream.hh"
 
 class Reassembler
@@ -43,4 +46,8 @@ public:
 
 private:
   ByteStream output_;
+  std::map<uint64_t, std::string> buffer_ {};
+  uint64_t buffered_bytes {};
+  uint64_t stream_end_idx {};
+  bool has_last_substring {};
 };
