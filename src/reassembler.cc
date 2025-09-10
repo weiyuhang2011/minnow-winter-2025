@@ -30,27 +30,41 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
 
   if ( first_index <= pushed ) {
     debug( "situation 2: data directly pushs to stream {} {}", first_index, data );
-    output_.writer().push( data.substr( pushed - first_index ) );
+    output_.writer().push( data.substr( static_cast<size_t>( pushed - first_index ) ) );
     pushed = writer().bytes_pushed();
 
-    for ( auto it = buffer_.begin(); it != buffer_.end(); ) {
-      const uint64_t start = it->first;
-      const auto& s = it->second;
-      const uint64_t end = start + s.size();
-      if ( ( start <= pushed ) && ( end > pushed ) ) {
-        debug( "situation 2.5: buffered data pushs to stream {} {}", start, s );
-        output_.writer().push( s.substr( pushed - start ) );
-        buffered_bytes -= s.size();
-        pushed = writer().bytes_pushed();
-        it = buffer_.erase( it );
-        continue;
+    while ( 1 ) {
+      bool progressed = false;
+
+      auto it = buffer_.upper_bound( pushed );
+      if ( it != buffer_.begin() ) {
+        auto cand = it;
+        --cand;
+
+        const uint64_t start = cand->first;
+        const auto& s = cand->second;
+        const uint64_t end = start + s.size();
+
+        if ( ( start <= pushed ) && ( end > pushed ) ) {
+          debug( "situation 2.5: buffered data pushs to stream {} {}", start, s );
+          buffered_bytes -= s.size();
+          if ( start == pushed ) {
+            output_.writer().push( s );
+          } else {
+            output_.writer().push( s.substr( pushed - start ) );
+          }
+          pushed = writer().bytes_pushed();
+          buffer_.erase( cand );
+          progressed = true;
+        } else if ( end <= pushed ) {
+          buffered_bytes -= s.size();
+          buffer_.erase( cand );
+          progressed = true;
+        }
+        if ( progressed )
+          continue;
       }
-      if ( end <= pushed ) {
-        buffered_bytes -= s.size();
-        it = buffer_.erase( it );
-        continue;
-      }
-      ++it;
+      break;
     }
     maybe_close();
     return;
